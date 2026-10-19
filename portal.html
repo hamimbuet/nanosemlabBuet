@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lab Portal - Nanomaterials and Semiconductor Physics Lab, BUET</title>
+    <!-- Supabase CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --card-bg: #1e1e1e;
+            --text-color: #e0e0e0;
+            --accent-color: #ff8c00;
+            --accent-hover: #ffa500;
+            --border-color: #333;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+        }
+        h1, h2 {
+            color: var(--accent-color);
+        }
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        input, select, textarea, button {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0 15px 0;
+            background-color: #2a2a2a;
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: var(--accent-color);
+            color: #000;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+        }
+        button:hover {
+            background-color: var(--accent-hover);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        th, td {
+            border: 1px solid var(--border-color);
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #252525;
+        }
+        .hidden {
+            display: none !important;
+        }
+        .flex-row {
+            display: flex;
+            gap: 15px;
+        }
+        .flex-row > * {
+            flex: 1;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>NanoSemLab Portal</h1>
+        <div id="user-info" class="hidden">
+            <span id="user-email-display" style="margin-right: 15px;"></span>
+            <button onclick="logout()" style="width: auto; padding: 5px 15px;">Logout</button>
+        </div>
+    </header>
+
+    <!-- Login Section -->
+    <div id="login-section" class="card">
+        <h2>Member & Admin Login</h2>
+        <form id="login-form" onsubmit="handleLogin(event)">
+            <label>Email:</label>
+            <input type="email" id="email" required placeholder="your.email@phy.buet.ac.bd">
+            <label>Password:</label>
+            <input type="password" id="password" required placeholder="••••••••">
+            <button type="submit">Sign In</button>
+        </form>
+    </div>
+
+    <!-- Dashboard Section -->
+    <div id="dashboard-section" class="card hidden">
+        <h2>Lab Dashboard</h2>
+        <p>Welcome, <span id="role-badge" style="font-weight:bold; color:var(--accent-color);"></span></p>
+
+        <!-- Expense Entry Form -->
+        <div id="expense-form-container" class="card" style="background-color: #181818;">
+            <h3>Submit New Expense / Purchase Request</h3>
+            <form id="expense-form" onsubmit="submitExpense(event)">
+                <div class="flex-row">
+                    <div>
+                        <label>Category:</label>
+                        <select id="exp-category">
+                            <option value="Chemicals">Chemicals & Reagents</option>
+                            <option value="Equipment Repair">Equipment Repair</option>
+                            <option value="Stationery">Stationery & Office Supplies</option>
+                            <option value="Publication">Publication Fee</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Currency & Amount:</label>
+                        <div class="flex-row">
+                            <select id="exp-currency" style="flex: 0.5;">
+                                <option value="BDT">BDT (৳)</option>
+                                <option value="USD">USD ($)</option>
+                            </select>
+                            <input type="number" id="exp-amount" step="0.01" required placeholder="0.00" style="flex: 1;">
+                        </div>
+                    </div>
+                </div>
+                <label>Description / Notes:</label>
+                <textarea id="exp-notes" rows="2" placeholder="Details about the purchase..."></textarea>
+                
+                <label>Receipt / Supporting Document (Image/PDF):</label>
+                <input type="file" id="exp-receipt">
+
+                <button type="submit">Submit Entry</button>
+            </form>
+        </div>
+
+        <!-- Records Table -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 25px;">
+            <h3>Expense Records</h3>
+            <button onclick="exportToExcel()" style="width: auto; padding: 8px 15px;">Download Excel (.xlsx)</button>
+        </div>
+        
+        <div style="overflow-x: auto;">
+            <table id="records-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Member</th>
+                        <th>Category</th>
+                        <th>Amount</th>
+                        <th>Notes</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="records-body">
+                    <!-- Data will load here dynamically -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Supabase Configuration
+    const SUPABASE_URL = 'https://gejvucpuuvhqqfrqglbg.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_5al0S7Dxlwwu57Rfysfzrw__tYWXd0Y';
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let currentUser = null;
+    let userRole = 'member';
+
+    async function checkUserSession() {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (session) {
+            currentUser = session.user;
+            document.getElementById('login-section').classList.add('hidden');
+            document.getElementById('dashboard-section').classList.remove('hidden');
+            document.getElementById('user-info').classList.remove('hidden');
+            document.getElementById('user-email-display').innerText = currentUser.email;
+            
+            await fetchUserProfile();
+            loadExpenses();
+        }
+    }
+
+    async function handleLogin(e) {
+        e.preventDefault();
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+
+        const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+        if (error) {
+            alert('Login failed: ' + error.message);
+        } else {
+            location.reload();
+        }
+    }
+
+    async function logout() {
+        await supabaseClient.auth.signOut();
+        location.reload();
+    }
+
+    async function fetchUserProfile() {
+        const { data, error } = await supabaseClient
+            .from('profiles')
+            .select('role')
+            .eq('id', currentUser.id)
+            .single();
+        
+        if (data) {
+            userRole = data.role;
+            document.getElementById('role-badge').innerText = userRole.toUpperCase();
+        }
+    }
+
+    async function submitExpense(e) {
+        e.preventDefault();
+        const category = document.getElementById('exp-category').value;
+        const currency = document.getElementById('exp-currency').value;
+        const amount = parseFloat(document.getElementById('exp-amount').value);
+        const notes = document.getElementById('exp-notes').value;
+        const fileInput = document.getElementById('exp-receipt');
+
+        let receiptUrl = null;
+        if (fileInput.files.length > 0) {
+            const file = fileInput.files[0];
+            const filePath = `receipts/${currentUser.id}/${Date.now()}_${file.name}`;
+            const { data: uploadData, error: uploadError } = await supabaseClient.storage
+                .from('receipts')
+                .upload(filePath, file);
+            
+            if (uploadError) {
+                alert('Error uploading receipt: ' + uploadError.message);
+                return;
+            }
+            receiptUrl = filePath;
+        }
+
+        const { error } = await supabaseClient.from('expenses').insert([
+            {
+                user_id: currentUser.id,
+                category,
+                currency,
+                amount,
+                notes,
+                receipt_url: receiptUrl,
+                status: 'submitted'
+            }
+        ]);
+
+        if (error) {
+            alert('Error saving record: ' + error.message);
+        } else {
+            alert('Expense submitted successfully!');
+            document.getElementById('expense-form').reset();
+            loadExpenses();
+        }
+    }
+
+    async function loadExpenses() {
+        let query = supabaseClient.from('expenses').select('*, profiles(email)').order('created_at', { ascending: false });
+        
+        // If member, show only own expenses
+        if (userRole === 'member') {
+            query = query.eq('user_id', currentUser.id);
+        }
+
+        const { data, error } = await query;
+        const tbody = document.getElementById('records-body');
+        tbody.innerHTML = '';
+
+        if (data) {
+            data.forEach(item => {
+                const tr = document.createElement('tr');
+                let actionBtn = '';
+                
+                if ((userRole === 'admin' || userRole === 'professor') && item.status === 'submitted') {
+                    actionBtn = `<button onclick="updateStatus('${item.id}', 'approved')" style="padding:4px 8px; margin-right:5px;">Approve</button>
+                                 <button onclick="updateStatus('${item.id}', 'rejected')" style="padding:4px 8px; background:#d9534f;">Reject</button>`;
+                }
+
+                tr.innerHTML = `
+                    <td>${new Date(item.created_at).toLocaleDateString()}</td>
+                    <td>${item.profiles ? item.profiles.email : 'Unknown'}</td>
+                    <td>${item.category}</td>
+                    <td>${item.currency} ${item.amount}</td>
+                    <td>${item.notes || ''}</td>
+                    <td><b>${item.status}</b></td>
+                    <td>${actionBtn}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+    }
+
+    async function updateStatus(id, status) {
+        const { error } = await supabaseClient.from('expenses').update({ status }).eq('id', id);
+        if (error) {
+            alert('Error updating status: ' + error.message);
+        } else {
+            loadExpenses();
+        }
+    }
+
+    function exportToExcel() {
+        const table = document.getElementById('records-table');
+        const wb = XLSX.utils.table_to_book(table, { sheet: "Expenses" });
+        XLSX.writeFile(wb, "Lab_Expenses_Report.xlsx");
+    }
+
+    checkUserSession();
+</script>
+
+</body>
+</html>

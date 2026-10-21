@@ -332,6 +332,12 @@
     }
 
     checkUserSession();
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
+
+const supabaseUrl = 'https://gejvucpuuvhqqfrqglbg.supabase.co'
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdlanZ1Y3B1dXZocXFmcnFnbGJnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIyMjEyODAsImV4cCI6MjEwNzc5NzI4MH0.g3pi96ITyQLhaGRZM35Esrpt3oJbort4S1rzWtjcx9s'
+
+export const supabase = createClient(supabaseUrl, supabaseKey)
 </script>
 
 </body>
